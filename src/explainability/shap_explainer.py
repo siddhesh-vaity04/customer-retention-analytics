@@ -53,23 +53,16 @@ class ShapExplainer:
         shap.summary_plot(shap_values, X_processed, feature_names=self.feature_names, max_display=max_display, show=show)
         return fig
         
+    def explain(self, X_processed_single):
+        """Returns the Explanation object for a single instance."""
+        explanation = self.explainer(X_processed_single)
+        if hasattr(explanation, 'values') and len(explanation.values.shape) > 1:
+            return explanation[0]
+        return explanation
+
     def plot_waterfall(self, X_processed_single, show=False):
         """Returns a waterfall plot for a single instance."""
-        # For waterfall plot, we need an Explanation object
-        if self.model_type == "xgboost":
-            explanation = self.explainer(X_processed_single)
-        else:
-            # For LinearExplainer without proper background, constructing an Explanation can be tricky
-            # We'll build it manually
-            shap_values = self.explainer.shap_values(X_processed_single)
-            expected_value = self.explainer.expected_value
-            explanation = shap.Explanation(values=shap_values[0], base_values=expected_value, 
-                                           data=X_processed_single[0], feature_names=self.feature_names)
-            
-        # In case xgboost returns a list or 2D array, get the first item
-        if hasattr(explanation, 'values') and len(explanation.values.shape) > 1:
-            explanation = explanation[0]
-            
+        explanation = self.explain(X_processed_single)
         fig = plt.figure()
         shap.plots.waterfall(explanation, show=show)
         return fig
